@@ -1,4 +1,4 @@
-# 📈 A/B Testing Analysis – Improving Loan Officers' Decision Quality
+# A/B Testing Analysis – Improving Loan Officers' Decision Quality
 
 This repository contains the R analysis code and summary report for a group project conducted in the *Advanced Data Analysis* module as part of the Master's in Business Analytics at the University of Warwick.
 
@@ -6,7 +6,7 @@ The project investigates whether a new computer-assisted model helps loan office
 
 ---
 
-## 🔍 Project Overview
+## Project Overview
 
 - **Objective:** Evaluate whether a new computer model reduces decision errors compared to the existing system in the loan review process.
 - **Design:** A/B test involving two groups:
@@ -19,7 +19,7 @@ The project investigates whether a new computer-assisted model helps loan office
 
 ---
 
-## 📊 Key Methods
+## Key Methods
 
 - Data cleaning and filtering
 - Calculation of FNR, FPR, and revision metrics per loan officer
