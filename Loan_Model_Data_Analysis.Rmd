@@ -1,0 +1,145 @@
+---
+title: "Loan Model Data Analysis"
+author: "Joao Marques Hassun, Suna Choi and Leo Lim"
+date: "2025-02-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(effectsize)
+library(pwr)
+```
+
+## Load and Inspect Data
+
+```{r load-data}
+# Load CSV
+AB_Data <- read.csv("ADAproject_2025_data.csv")
+
+# View structure and summary
+str(AB_Data)
+summary(AB_Data)
+```
+
+## Data Preparation
+
+```{r data-preparation}
+# Filter: keep rows where initial and final completions are equal
+AB_Data <- AB_Data %>%
+  filter(complt_init == complt_fin)
+```
+
+## Feature Engineering
+
+```{r feature-engineering}
+AB_Data <- AB_Data %>%
+  mutate(
+    # False Negative Rate before and after
+    FNR_init = typeII_init / (badloans_num + goodloans_num),
+    FNR_fin = typeII_fin / (badloans_num + goodloans_num),
+    FNR_change = FNR_fin - FNR_init,
+    
+    # False Positive Rate change
+    FPR_change = (typeI_fin / (goodloans_num + badloans_num)) - 
+                 (typeI_init / (goodloans_num + badloans_num)),
+    
+    # Revision Rate
+    Revision_Rate = revised_per_ai / (goodloans_num + badloans_num)
+  )
+```
+
+## Aggregate Metrics per Loan Officer
+
+```{r summarise-officers}
+AB_Data <- AB_Data %>%
+  group_by(Variant, loanofficer_id) %>%
+  summarise(
+    FNR_per_officer = mean(FNR_change),
+    FPR_per_officer = mean(FPR_change),
+    Revision_Rate_per_officer = mean(Revision_Rate),
+    .groups = "drop"
+  )
+```
+
+## Sample Size Check
+
+```{r sample-size}
+table(AB_Data$Variant)  # Control = 10, Treatment = 28
+```
+
+---
+
+## Statistical Analysis
+
+### False Negative Rate (FNR)
+
+```{r fnr-test}
+t_test_FNR <- t.test(FNR_per_officer ~ Variant, data = AB_Data, var.equal = FALSE)
+
+Control <- AB_Data$FNR_per_officer[AB_Data$Variant == "Control"]
+Treatment <- AB_Data$FNR_per_officer[AB_Data$Variant == "Treatment"]
+
+cohen_d_FNR <- cohens_d(Treatment, Control)
+interpret_FNR <- interpret_cohens_d(cohen_d_FNR$Cohens_d)
+
+print(t_test_FNR)
+print(cohen_d_FNR)
+print(interpret_FNR)
+```
+
+### Power Analysis for FNR
+
+```{r power-analysis}
+pwr.t.test(
+  power = 0.8,
+  d = -0.65,
+  sig.level = 0.05,
+  type = "two.sample"
+)
+```
+
+---
+
+### False Positive Rate (FPR)
+
+```{r fpr-test}
+t_test_FPR <- t.test(FPR_per_officer ~ Variant, data = AB_Data, var.equal = FALSE)
+
+Control <- AB_Data$FPR_per_officer[AB_Data$Variant == "Control"]
+Treatment <- AB_Data$FPR_per_officer[AB_Data$Variant == "Treatment"]
+
+cohen_d_FPR <- cohens_d(Treatment, Control)
+interpret_FPR <- interpret_cohens_d(cohen_d_FPR$Cohens_d)
+
+print(t_test_FPR)
+print(cohen_d_FPR)
+print(interpret_FPR)
+```
+
+---
+
+### Revision Rate
+
+```{r revision-rate-test}
+t_test_Rev <- t.test(Revision_Rate_per_officer ~ Variant, data = AB_Data, var.equal = FALSE)
+
+Control <- AB_Data$Revision_Rate_per_officer[AB_Data$Variant == "Control"]
+Treatment <- AB_Data$Revision_Rate_per_officer[AB_Data$Variant == "Treatment"]
+
+cohen_d_Rev <- cohens_d(Treatment, Control)
+interpret_Rev <- interpret_cohens_d(cohen_d_Rev$Cohens_d)
+
+print(t_test_Rev)
+print(cohen_d_Rev)
+print(interpret_Rev)
+```
+
+---
+
+## Conclusion
+
+- Welch's t-test and Cohen's d were used due to unequal sample sizes.
+- FNR, FPR, and Revision Rates show how loan officer decisions were influenced by AI predictions.
+- The results provide evidence for whether treatment (exposed to AI predictions) differs meaningfully from control.
